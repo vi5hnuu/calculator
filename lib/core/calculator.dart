@@ -43,7 +43,10 @@ class Calculator{
     final List<String> infix=[];
     
     String num="";//2.56+23
-    for(int i=0;i<query.length;i++){//+2+3 => 5 , 3--5 => 3+(-5) => -2, wrong-> 2---3 => ["2","-","--3"] (--3 is not a number)
+    for(int i=0;i<query.length;i++){
+      //+2+3 => 5 , 3--5 => 3+(-5) => -2
+      // wrong-> 2---3 => ["2","-","--3"] (--3 is not a number) -> will throw
+      //+0++2**3 => ["+0","+","+2","*","*2"] => *2 is invalid number -> will throw
       if(query[i]=='.' || _isDigit(query[i]) || (num.isEmpty && _isOperator(query[i]))){
         num+=query[i];
       }else if(_isOperator(query[i])){
@@ -53,6 +56,7 @@ class Calculator{
         infix.add(query[i]);
       }
     }
+    if(double.tryParse(num)==null) throw Exception("invalid query");
     infix.add(num);
     return infix;
   }

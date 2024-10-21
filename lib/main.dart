@@ -1,12 +1,21 @@
-import 'package:calculator/core/calculator.dart';
-import 'package:calculator/core/themeProvider.dart';
+import 'dart:ui';
+
+import 'package:calculator/core/components/historyTile.dart';
+import 'package:calculator/core/historyItem.dart';
+import 'package:calculator/core/singletons/calculator.dart';
+import 'package:calculator/core/components/roundedSvgButton.dart';
+import 'package:calculator/core/singletons/persistance.dart';
+import 'package:calculator/core/singletons/themeProvider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:logger/logger.dart';
+import 'package:shimmer/shimmer.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitDown,
     DeviceOrientation.portraitUp]);
   runApp(const MyApp());
@@ -26,6 +35,13 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     ThemeProvider().stream.listen((theme)=>setState(()=>currentTheme=theme));
     super.initState();
+    initialization();
+  }
+
+  void initialization() async {
+    await Persistance.initDB();
+    Calculator().replaceHistoryItems(await Persistance().getHistoryItems()) ;
+    FlutterNativeSplash.remove();
   }
 
   @override
@@ -92,9 +108,17 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: ListView.builder(
                           controller: _historyScrollController,
                           padding: const EdgeInsets.all(18.0),
-                          itemBuilder: (context, index)=>Padding(padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Text(snapshot.data!.history[index],textAlign: TextAlign.right,
-                              style: const TextStyle(fontSize: 18),),),
+                          itemBuilder: (context, index){
+                            final historyItem=snapshot.data!.history[index];
+                            return Padding(padding: const EdgeInsets.only(bottom: 12.0),
+                              child:historyItem.id==null ? Shimmer.fromColors(
+                                baseColor: Colors.grey[300]!,
+                                highlightColor: Colors.grey[100]!,
+                                child: HistoryTile(historyItem: historyItem),
+                              ) : HistoryTile(historyItem: historyItem,onEdit: () {
+                                _controller.text=historyItem.query;
+                              }));
+                          },
                           itemCount: snapshot.data?.history.length ?? 0),),
                       const Divider(indent: 40,endIndent: 40,thickness: 2,),
                       Padding(
@@ -166,27 +190,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class RoundedSvgButton extends StatelessWidget {
-  final String svgPath;
-  final VoidCallback? onPressed;
 
-  const RoundedSvgButton({
-    super.key,
-    required this.svgPath,
-    this.onPressed
-  });
 
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme=Theme.of(context);
 
-    return ElevatedButton(onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
-          alignment: Alignment.center,
-          padding: EdgeInsets.zero
-        ),
-        child: SvgPicture.asset(svgPath,colorFilter: ColorFilter.mode(theme.brightness==Brightness.dark ? Colors.white : Colors.black,BlendMode.srcIn),));
-  }
-}

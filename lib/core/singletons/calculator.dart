@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:calculator/core/historyItem.dart';
+import 'package:calculator/core/singletons/persistance.dart';
+
 class CalculatorResult{
-  final List<String> history;
+  final List<HistoryItem> history;
   final double? result;//result -> invalid
 
   CalculatorResult({required this.history,required this.result});
@@ -10,7 +13,7 @@ class CalculatorResult{
 class Calculator{
   static final Calculator _instance=Calculator._();
   static final _operators=['+','-','*','/','%'];
-  static final List<String> _history=[];
+  static final List<HistoryItem> _history=[];
   static final StreamController<CalculatorResult> _streamController=StreamController<CalculatorResult>();
 
 
@@ -24,17 +27,32 @@ class Calculator{
     return _streamController.stream;
   }
 
-  void parse({required String query,bool apply=false}){
+  void parse({required String query,bool apply=false}) async{
     // %, +, -, *, /, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0,.
     try{
       final result= _evaluatePostfix(_infixToPostfix(_queryToInfix(query)));
-      if(apply) _history.add("$query = $result");
-       _streamController.sink.add(CalculatorResult(history: _history, result:result));
+      final HistoryItem historyItem=HistoryItem(query: query,
+          created_at: DateTime.now().millisecondsSinceEpoch,
+          updated_at: DateTime.now().millisecondsSinceEpoch);
+
+      if(apply) {
+        _history.add(historyItem);
+        Persistance().addHistoryItem(historyItem: historyItem).then((id){
+          historyItem.id=id;
+          _streamController.sink.add(CalculatorResult(history: _history, result:null));
+        });
+      }
+      _streamController.sink.add(CalculatorResult(history: _history, result:result));
     }catch(e){
       _streamController.sink.add(CalculatorResult(history: _history, result:null));
     }
   }
 
+  replaceHistoryItems(List<HistoryItem> items){
+    _history.clear();
+    _history.addAll(items);
+    _streamController.sink.add(CalculatorResult(history: _history, result:null));
+  }
 
   List<String> _queryToInfix(String query){
     //'2+3.3*5' -> ['2','+','3.5']

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Same layers as ic_launcher. An adaptive icon is already shape-agnostic — the launcher
+  applies its own mask — so the round variant is not a different drawing, it just gives
+  launchers that explicitly ask for `roundIcon` something correct to find. The manifest
+  previously pointed roundIcon at the square legacy PNG.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
